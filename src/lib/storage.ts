@@ -1,77 +1,42 @@
-import { getUserId } from './user'
+import {
+  dbAddTransaction,
+  dbDeleteTransaction,
+  dbImportTransactions,
+  dbUpdateTransaction,
+  getState,
+} from './store'
+import { getCategory } from './categories'
 import type { Transaction } from './types'
 
-const TX_KEY = 'money.transactions'
-
-/**
- * Phase 1-2 data layer: transactions live in localStorage, keyed by the same
- * shape the eventual Supabase `transactions` table will use, so every read
- * here is already scoped to the current anonymous user_id.
- */
-function readAll(): Transaction[] {
-  try {
-    const raw = localStorage.getItem(TX_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as Transaction[]
-  } catch {
-    return []
-  }
-}
-
-function writeAll(txs: Transaction[]) {
-  localStorage.setItem(TX_KEY, JSON.stringify(txs))
-}
-
+/** Reads are synchronous against the in-memory mirror; writes go to Supabase. */
 export function listTransactions(): Transaction[] {
-  const userId = getUserId()
-  return readAll()
-    .filter((t) => t.user_id === userId)
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  return getState().transactions
 }
 
-export function addTransaction(input: {
+export const addTransaction = (input: {
   amount: number
   category: string
   note?: string
   created_at?: string
-}): Transaction {
-  const now = new Date().toISOString()
-  const tx: Transaction = {
-    id: crypto.randomUUID(),
-    user_id: getUserId(),
-    amount: input.amount,
-    category: input.category,
-    note: input.note ?? '',
-    created_at: input.created_at ?? now,
-    updated_at: now,
-  }
-  const all = readAll()
-  all.push(tx)
-  writeAll(all)
-  return tx
-}
+}) => dbAddTransaction(input)
 
-export function updateTransaction(
+export const updateTransaction = (
   id: string,
   patch: Partial<Pick<Transaction, 'amount' | 'category' | 'note'>>,
-): void {
-  const userId = getUserId()
-  const all = readAll()
-  const idx = all.findIndex((t) => t.id === id && t.user_id === userId)
-  if (idx === -1) return
-  all[idx] = { ...all[idx], ...patch, updated_at: new Date().toISOString() }
-  writeAll(all)
-}
+) => dbUpdateTransaction(id, patch)
 
-export function deleteTransaction(id: string): void {
-  const userId = getUserId()
-  const all = readAll().filter((t) => !(t.id === id && t.user_id === userId))
-  writeAll(all)
-}
+export const deleteTransaction = (id: string) => dbDeleteTransaction(id)
 
 export function exportJSON(): string {
   return JSON.stringify(
-    { userId: getUserId(), transactions: listTransactions() },
+    {
+      userId: getState().userId,
+      exportedAt: new Date().toISOString(),
+      transactions: listTransactions().map((t) => ({
+        ...t,
+        categoryName: getCategory(t.category).label,
+      })),
+    },
     null,
     2,
   )
@@ -80,16 +45,43 @@ export function exportJSON(): string {
 export function exportCSV(): string {
   const rows = [['date', 'category', 'amount', 'note']]
   for (const t of listTransactions()) {
-    rows.push([t.created_at, t.category, String(t.amount), t.note.replace(/[\n,]/g, ' ')])
+    rows.push([
+      t.created_at,
+      getCategory(t.category).label,
+      String(t.amount),
+      t.note.replace(/[\n,]/g, ' '),
+    ])
   }
   return rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n')
 }
 
-export function importData(json: string): void {
-  const parsed = JSON.parse(json) as { transactions?: Transaction[] }
+/**
+ * Import matches categories by name so a file exported from another device
+ * lands in the right buckets; anything unmatched falls back to the first
+ * category rather than being dropped.
+ */
+export async function importData(json: string): Promise<void> {
+  const parsed = JSON.parse(json) as {
+    transactions?: (Partial<Transaction> & { categoryName?: string })[]
+  }
   if (!Array.isArray(parsed.transactions)) throw new Error('invalid file')
-  const userId = getUserId()
-  const others = readAll().filter((t) => t.user_id !== userId)
-  const incoming = parsed.transactions.map((t) => ({ ...t, user_id: userId }))
-  writeAll([...others, ...incoming])
+
+  const categories = getState().categories
+  const byName = new Map(categories.map((c) => [c.label, c.id]))
+  const byId = new Set(categories.map((c) => c.id))
+  const fallback = categories[0]?.id ?? ''
+
+  const rows = parsed.transactions
+    .filter((t) => typeof t.amount === 'number' && t.amount > 0)
+    .map((t) => ({
+      amount: t.amount as number,
+      category:
+        (t.categoryName && byName.get(t.categoryName)) ||
+        (t.category && byId.has(t.category) ? t.category : '') ||
+        fallback,
+      note: t.note ?? '',
+      created_at: t.created_at ?? new Date().toISOString(),
+    }))
+
+  await dbImportTransactions(rows)
 }

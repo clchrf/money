@@ -2,12 +2,13 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { CategoryManagerSheet } from '../components/CategoryManagerSheet'
 import { FixedExpenseManagerSheet } from '../components/FixedExpenseManagerSheet'
 import { exportCSV, exportJSON, importData } from '../lib/storage'
-import { getReminderSettings, updateReminderSettings } from '../lib/reminderSettings'
+import { updateReminderSettings } from '../lib/reminderSettings'
 import { useTheme, type ThemeMode } from '../lib/theme'
 import { TextField } from '../ui/Field'
 import { ListCaption, ListGroup, ListRow, SectionHeader } from '../ui/List'
 import { PageHeader } from '../ui/PageHeader'
 import { Switch } from '../ui/Switch'
+import { useStore } from '../lib/useStore'
 
 function downloadFile(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime })
@@ -33,7 +34,8 @@ export function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false)
   const [fixedExpenseManagerOpen, setFixedExpenseManagerOpen] = useState(false)
-  const [reminders, setReminders] = useState(getReminderSettings())
+  const store = useStore()
+  const reminders = store.reminders
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -52,7 +54,7 @@ export function SettingsPage() {
     }
   }
 
-  const patchReminders = (patch: Partial<typeof reminders>) => setReminders(updateReminderSettings(patch))
+  const patchReminders = (patch: Partial<typeof reminders>) => updateReminderSettings(patch)
   const today = new Date().toISOString().slice(0, 10)
 
   return (

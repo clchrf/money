@@ -1,6 +1,7 @@
 import { listCategories } from '../lib/categories'
 import { Icon } from '../ui/Icon'
 import { Sheet } from '../ui/Sheet'
+import { useStore } from '../lib/useStore'
 
 export function CategoryBottomSheet({
   selected,
@@ -14,6 +15,7 @@ export function CategoryBottomSheet({
   /** When set, only these category ids are offered (e.g. ones without a budget yet). */
   filterIds?: string[]
 }) {
+  useStore()
   const categories = listCategories().filter((c) => !filterIds || filterIds.includes(c.id))
 
   return (

@@ -8,6 +8,7 @@ import { SearchField } from '../ui/Field'
 import { IconButton } from '../ui/IconButton'
 import { ListGroup } from '../ui/List'
 import { PageHeader } from '../ui/PageHeader'
+import { useStore } from '../lib/useStore'
 
 function dateKey(iso: string): string {
   const d = new Date(iso)
@@ -24,6 +25,7 @@ function formatAmount(n: number): string {
 
 export function HistoryPage() {
   const [version, setVersion] = useState(0)
+  const store = useStore()
   const [activeTx, setActiveTx] = useState<Transaction | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editingTx, setEditingTx] = useState<Transaction | null>(null)
@@ -38,7 +40,7 @@ export function HistoryPage() {
   }, [monthOffset])
 
   const monthLabel = target.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' })
-  const allTransactions = useMemo(() => listTransactions(), [version])
+  const allTransactions = useMemo(() => listTransactions(), [store, version])
 
   const transactions = useMemo(() => {
     const q = query.trim().toLowerCase()

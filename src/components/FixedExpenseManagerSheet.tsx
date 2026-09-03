@@ -13,6 +13,7 @@ import { IconButton } from '../ui/IconButton'
 import { ListGroup, ListRow } from '../ui/List'
 import { ModalScreen } from '../ui/Sheet'
 import { Switch } from '../ui/Switch'
+import { useStore } from '../lib/useStore'
 import { CategoryBottomSheet } from './CategoryBottomSheet'
 import { CategoryPillButton } from './CategoryPillButton'
 
@@ -139,6 +140,7 @@ function FixedExpenseFormSheet({
 export function FixedExpenseManagerSheet({ onDismiss }: { onDismiss: () => void }) {
   const [version, setVersion] = useState(0)
   const [editing, setEditing] = useState<FixedExpense | 'new' | null>(null)
+  useStore()
   const items = listFixedExpenses()
   const refresh = () => setVersion((v) => v + 1)
   void version

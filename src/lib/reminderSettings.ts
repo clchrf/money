@@ -1,28 +1,15 @@
+import { dbUpdateReminders, getState } from './store'
 import type { ReminderSettings } from './types'
 
-const KEY = 'money.reminderSettings'
-
-const DEFAULTS: ReminderSettings = {
-  email: '',
-  noon_enabled: false,
-  evening_enabled: false,
-  noon_time: '12:00',
-  evening_time: '19:00',
-  monthly_report_enabled: false,
-}
-
 export function getReminderSettings(): ReminderSettings {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return DEFAULTS
-    return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<ReminderSettings>) }
-  } catch {
-    return DEFAULTS
-  }
+  return getState().reminders
 }
 
-export function updateReminderSettings(patch: Partial<ReminderSettings>) {
-  const next = { ...getReminderSettings(), ...patch }
-  localStorage.setItem(KEY, JSON.stringify(next))
-  return next
+/**
+ * Optimistic: the mirror updates immediately so switches feel instant, and the
+ * write is sent to Supabase in the background.
+ */
+export function updateReminderSettings(patch: Partial<ReminderSettings>): ReminderSettings {
+  void dbUpdateReminders(patch)
+  return { ...getState().reminders, ...patch }
 }

@@ -12,6 +12,7 @@ import {
 import { getCategory, listCategories } from '../lib/categories'
 import { IconButton } from '../ui/IconButton'
 import { PageHeader } from '../ui/PageHeader'
+import { useStore } from '../lib/useStore'
 
 function formatAmount(n: number): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: 0 })
@@ -19,14 +20,15 @@ function formatAmount(n: number): string {
 
 export function BudgetPage() {
   const [version, setVersion] = useState(0)
+  const store = useStore()
   const [editingTotal, setEditingTotal] = useState(false)
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
 
   const refresh = () => setVersion((v) => v + 1)
 
-  const total = useMemo(() => getTotalBudget(), [version])
-  const totalUsed = useMemo(() => (total ? computeUsed(null, total.period) : 0), [total, version])
+  const total = useMemo(() => getTotalBudget(), [store, version])
+  const totalUsed = useMemo(() => (total ? computeUsed(null, total.period) : 0), [total, store, version])
 
   const categoryBudgets = useMemo(
     () =>
@@ -38,7 +40,7 @@ export function BudgetPage() {
           used: computeUsed(b.category, b.period),
         }))
         .sort((a, b) => b.used / b.budget.amount - a.used / a.budget.amount),
-    [version],
+    [store, version],
   )
 
   const budgetedIds = new Set(categoryBudgets.map((c) => c.category.id))

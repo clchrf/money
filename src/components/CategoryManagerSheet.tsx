@@ -6,6 +6,7 @@ import { TextField } from '../ui/Field'
 import { IconButton } from '../ui/IconButton'
 import { ListGroup } from '../ui/List'
 import { ModalScreen, Sheet } from '../ui/Sheet'
+import { useStore } from '../lib/useStore'
 
 function CategoryFormSheet({
   initial,
@@ -44,6 +45,7 @@ function CategoryFormSheet({
 export function CategoryManagerSheet({ onDismiss }: { onDismiss: () => void }) {
   const [version, setVersion] = useState(0)
   const [editing, setEditing] = useState<Category | 'new' | null>(null)
+  useStore()
   const categories = listCategories()
   const refresh = () => setVersion((v) => v + 1)
   void version

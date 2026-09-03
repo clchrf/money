@@ -1,26 +1,9 @@
-import { getUserId } from './user'
+import { dbDeleteBudget, dbSetBudget, getState } from './store'
 import { listTransactions } from './storage'
 import type { Budget, BudgetPeriod } from './types'
 
-const KEY = 'money.budgets'
-
-function readAll(): Budget[] {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as Budget[]
-  } catch {
-    return []
-  }
-}
-
-function writeAll(all: Budget[]) {
-  localStorage.setItem(KEY, JSON.stringify(all))
-}
-
 export function listBudgets(): Budget[] {
-  const userId = getUserId()
-  return readAll().filter((b) => b.user_id === userId)
+  return getState().budgets
 }
 
 export function getTotalBudget(): Budget | undefined {
@@ -31,30 +14,10 @@ export function getCategoryBudget(categoryId: string): Budget | undefined {
   return listBudgets().find((b) => b.category === categoryId)
 }
 
-function upsert(category: string | null, amount: number, period: BudgetPeriod) {
-  const userId = getUserId()
-  const all = readAll()
-  const idx = all.findIndex((b) => b.user_id === userId && b.category === category)
-  if (idx === -1) {
-    all.push({ id: crypto.randomUUID(), user_id: userId, category, amount, period })
-  } else {
-    all[idx] = { ...all[idx], amount, period }
-  }
-  writeAll(all)
-}
-
-export function setTotalBudget(amount: number, period: BudgetPeriod) {
-  upsert(null, amount, period)
-}
-
-export function setCategoryBudget(categoryId: string, amount: number, period: BudgetPeriod) {
-  upsert(categoryId, amount, period)
-}
-
-export function deleteCategoryBudget(categoryId: string) {
-  const userId = getUserId()
-  writeAll(readAll().filter((b) => !(b.user_id === userId && b.category === categoryId)))
-}
+export const setTotalBudget = (amount: number, period: BudgetPeriod) => dbSetBudget(null, amount, period)
+export const setCategoryBudget = (categoryId: string, amount: number, period: BudgetPeriod) =>
+  dbSetBudget(categoryId, amount, period)
+export const deleteCategoryBudget = (categoryId: string) => dbDeleteBudget(categoryId)
 
 /** Start/end (inclusive) of the period containing `ref`. */
 export function getPeriodRange(period: BudgetPeriod, ref: Date = new Date()): { start: Date; end: Date } {
@@ -70,7 +33,11 @@ export function getPeriodRange(period: BudgetPeriod, ref: Date = new Date()): { 
   return { start, end }
 }
 
-export function computeUsed(categoryId: string | null, period: BudgetPeriod, ref: Date = new Date()): number {
+export function computeUsed(
+  categoryId: string | null,
+  period: BudgetPeriod,
+  ref: Date = new Date(),
+): number {
   const { start, end } = getPeriodRange(period, ref)
   return listTransactions()
     .filter((t) => {

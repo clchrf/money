@@ -6,6 +6,7 @@ import { computeUsed, getTotalBudget } from '../lib/budgets'
 import { getCategory, getDefaultCategoryId, setLastCategoryId } from '../lib/categories'
 import { addTransaction } from '../lib/storage'
 import { useAmountInput } from '../lib/useAmountInput'
+import { useStore } from '../lib/useStore'
 import { Icon } from '../ui/Icon'
 import { MetaRow } from '../ui/MetaRow'
 import { TextField } from '../ui/Field'
@@ -35,30 +36,43 @@ export function RecordPage() {
   const [noteOpen, setNoteOpen] = useState(false)
   const [note, setNote] = useState('')
   const [savedFlash, setSavedFlash] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const store = useStore()
 
   const remaining = useMemo(() => {
     const total = getTotalBudget()
     if (!total) return null
     return total.amount - computeUsed(null, total.period)
-  }, [refreshKey])
+  }, [store, refreshKey])
 
   const flash = () => {
     setSavedFlash(true)
     window.setTimeout(() => setSavedFlash(false), 1000)
   }
 
-  const canSave = numeric > 0 && category !== ''
+  const canSave = numeric > 0 && category !== '' && !saving
 
-  const save = () => {
+  const save = async () => {
     if (!canSave) return
-    addTransaction({ amount: numeric, category, note, created_at: dateKeyToISO(date) })
-    setLastCategoryId(category)
-    reset()
-    setNote('')
-    setNoteOpen(false)
-    flash()
-    setRefreshKey((k) => k + 1)
+    setSaving(true)
+    try {
+      await addTransaction({ amount: numeric, category, note, created_at: dateKeyToISO(date) })
+      // Only clear the form once the write actually lands — a failed request
+      // must leave the amount and category exactly as the user entered them.
+      setLastCategoryId(category)
+      reset()
+      setNote('')
+      setNoteOpen(false)
+      flash()
+      setRefreshKey((k) => k + 1)
+    } catch {
+      setSaveError('儲存失敗，請檢查網路後再試一次')
+      window.setTimeout(() => setSaveError(null), 2500)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const selectedCategory = category ? getCategory(category) : null
@@ -88,7 +102,7 @@ export function RecordPage() {
             disabled={!canSave}
             className="flex h-11 items-center px-1 text-body font-semibold text-primary transition-opacity duration-100 active:opacity-50 disabled:text-tertiary"
           >
-            儲存
+            {saving ? '儲存中…' : '儲存'}
           </button>
         </div>
       </div>
@@ -106,12 +120,14 @@ export function RecordPage() {
             {CURRENCY}
           </span>
         </div>
-        <div className="mt-2 h-4 text-caption text-secondary">
-          {savedFlash
-            ? '已記錄'
-            : remaining !== null
-              ? `本期預算剩餘 $${remaining.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-              : ''}
+        <div className={`mt-2 h-4 text-caption ${saveError ? 'text-primary' : 'text-secondary'}`}>
+          {saveError
+            ? saveError
+            : savedFlash
+              ? '已記錄'
+              : remaining !== null
+                ? `本期預算剩餘 $${remaining.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+                : ''}
         </div>
       </div>
 
