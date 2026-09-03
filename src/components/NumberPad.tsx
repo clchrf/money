@@ -24,16 +24,16 @@ const KEYS: Key[] = [
  */
 export function NumberPad({ onKey }: { onKey: (key: string) => void }) {
   return (
-    <div className="mx-auto grid w-full max-w-[330px] grid-cols-3 gap-x-4 gap-y-1">
+    <div className="mx-auto grid w-full max-w-[372px] grid-cols-3 gap-x-[18px] gap-y-1.5">
       {KEYS.map((k) => (
         <button
           key={k.key}
           type="button"
           aria-label={k.aria}
           onClick={() => onKey(k.key)}
-          className="flex h-[clamp(56px,8.4dvh,76px)] w-full items-center justify-center rounded-full text-keypad text-primary transition-colors duration-100 active:bg-fill"
+          className="flex h-[clamp(63px,9.4dvh,85px)] w-full items-center justify-center rounded-full text-keypad text-primary transition-colors duration-100 active:bg-fill"
         >
-          {k.icon ? <Icon name={k.icon} size="lg" strokeWidth={2} /> : k.label}
+          {k.icon ? <Icon name={k.icon} size="xl" strokeWidth={2} /> : k.label}
         </button>
       ))}
     </div>

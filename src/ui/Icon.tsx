@@ -54,6 +54,8 @@ export const ICON_SIZE = {
   sm: 16,
   md: 20,
   lg: 24,
+  /** Only the keypad's undo/backspace glyphs use this, to match their enlarged digits. */
+  xl: 28,
 } as const
 
 export type IconSize = keyof typeof ICON_SIZE

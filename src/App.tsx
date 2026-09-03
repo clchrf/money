@@ -42,10 +42,14 @@ function App() {
   }
 
   if (store.status === 'loading') {
-    // Deliberately blank: the load is fast, and a spinner would flash.
+    // A single centered mark rather than a bare screen — flex-centered
+    // against the full viewport (not an inset sub-container), so it holds
+    // its position regardless of notch height or device height.
     return (
       <ThemeProvider>
-        <div className="h-dvh bg-bg" />
+        <div className="flex h-dvh items-center justify-center bg-bg">
+          <span className="text-headline font-bold text-primary">$</span>
+        </div>
       </ThemeProvider>
     )
   }

@@ -117,7 +117,7 @@
   --text-tab: 11px;
   --text-tab--line-height: 1;
 
-  --text-keypad: 30px;
+  --text-keypad: 34px;
   --text-keypad--line-height: 1;
   --text-keypad--font-weight: 600;
 
@@ -135,10 +135,22 @@
 /* ------------------------------------------------------------------
    Base
    ------------------------------------------------------------------ */
+/*
+ * html/body/#root previously used height:100%, which on iOS Safari resolves
+ * against the large (address-bar-hidden) viewport and stays fixed even while
+ * the address bar is showing. The app shell below sizes itself with 100dvh,
+ * which tracks the *current* visible height and shrinks when the address bar
+ * is showing. That mismatch left the shell shorter than its own ancestors
+ * whenever the chrome was visible, showing as blank space under the tab bar
+ * and reading as "the whole app is shifted up." Sizing the whole chain with
+ * the same dynamic unit removes the mismatch at the source, with no
+ * hardcoded offsets.
+ */
 html,
 body,
 #root {
-  height: 100%;
+  height: 100vh;
+  height: 100dvh;
 }
 
 body {
