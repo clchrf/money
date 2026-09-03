@@ -12,9 +12,13 @@
 --      跟 Supabase 自己的金鑰系統無關，所以不受它換版本格式影響。
 --   4. 在這裡的 SQL Editor 執行以下全部內容 —— 記得把
 --      <PROJECT_REF> 換成你的專案網址（例如 ynqoxbjuuectbvlsuhgz），
+--      把 <ANON_KEY> 換成 Project Settings → API 裡的 anon / publishable
+--      key（這把設計上就是公開的，直接寫進這份檔案沒問題 —— Supabase
+--      自己的 Edge Function 閘道器要求 Authorization 帶一把合法專案金鑰
+--      才會放行，這只是滿足這個平台層檢查，不是我們自己的授權機制），
 --      並把 <CRON_SECRET> 換成跟第 3 步「完全相同」的那組字串
 --      （只會存進 Supabase 自己的加密 Vault，不會出現在任何檔案或
---      GitHub 裡）。
+--      GitHub 裡 —— 我們自己的授權檢查靠的是這個，不是上面的 anon key）。
 --
 -- 時區換算（Asia/Taipei 全年 UTC+8，沒有日光節約時間）：
 --   12:00 台北 = 04:00 UTC
@@ -50,7 +54,8 @@ select cron.schedule(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-reminders',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
+      'Authorization', 'Bearer <ANON_KEY>',
+      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
     ),
     body := jsonb_build_object('slot', 'noon')
   ) as request_id;
@@ -68,7 +73,8 @@ select cron.schedule(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-reminders',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
+      'Authorization', 'Bearer <ANON_KEY>',
+      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
     ),
     body := jsonb_build_object('slot', 'evening')
   ) as request_id;
@@ -86,7 +92,8 @@ select cron.schedule(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-monthly-report',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
+      'Authorization', 'Bearer <ANON_KEY>',
+      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
     ),
     body := '{}'::jsonb
   ) as request_id;

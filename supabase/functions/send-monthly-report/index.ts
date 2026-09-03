@@ -105,9 +105,12 @@ function reportEmailHtml(
 }
 
 Deno.serve(async (req) => {
+  // See send-reminders/index.ts: the platform gateway needs `Authorization`
+  // to be a real Supabase key (cron.sql sends the public anon key), so our
+  // own check lives on a separate header instead.
   const cronSecret = Deno.env.get('CRON_SECRET')
-  const authHeader = req.headers.get('Authorization')
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const provided = req.headers.get('x-cron-secret')
+  if (!cronSecret || provided !== cronSecret) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
   }
 

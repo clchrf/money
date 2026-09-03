@@ -19,16 +19,24 @@
 //                        verified email — fine for a first test, not for
 //                        real users)
 //   CRON_SECRET       — a random string only pg_cron and this function
-//                        know, used to reject any caller that isn't the
-//                        scheduler (this function iterates every user's
-//                        data, so it must never be publicly triggerable).
-//                        Generate one however you like; it just has to
-//                        match the value stored in Vault by cron.sql.
+//                        know, sent as the x-cron-secret header (not
+//                        Authorization — that one has to hold an actual
+//                        Supabase key, see below). Rejects any caller
+//                        that isn't the scheduler; this function iterates
+//                        every user's data, so it must never be publicly
+//                        triggerable. Generate the string however you
+//                        like; it just has to match the value stored in
+//                        Vault by cron.sql.
 //
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically by
 // Supabase for every Edge Function — nothing to configure for those; they're
 // used only to build the DB client, not for caller authentication (see
 // CRON_SECRET above for why).
+//
+// Note: Supabase's own platform gateway independently requires the
+// `Authorization` header to be a real project key before it will even
+// invoke this function — cron.sql sends the public anon key there, which
+// is fine to hardcode since that key is designed to be public.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -85,12 +93,16 @@ function reminderEmailHtml(dateLabel: string, slot: Slot): string {
 }
 
 Deno.serve(async (req) => {
-  // Only pg_cron (authenticated with CRON_SECRET, set independently of
-  // whatever key format Supabase happens to auto-inject) may trigger this —
-  // it iterates every user's data, so it must never be publicly callable.
+  // The platform's own gateway requires `Authorization` to be a real
+  // Supabase-issued key (any project key satisfies it — see cron.sql,
+  // which sends the public anon key there since that's what it's for).
+  // Our own authorization is a *separate* header, so it never collides
+  // with whatever format Supabase's key system uses: only pg_cron knows
+  // CRON_SECRET, and this function iterates every user's data, so it must
+  // never be triggerable by anyone who merely holds a project API key.
   const cronSecret = Deno.env.get('CRON_SECRET')
-  const authHeader = req.headers.get('Authorization')
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const provided = req.headers.get('x-cron-secret')
+  if (!cronSecret || provided !== cronSecret) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
   }
 
