@@ -13,6 +13,10 @@ dist-ssr/
 *.pem
 *.key
 
+# Supabase CLI local cache
+supabase/.temp/
+supabase/.branches/
+
 # Editor / OS
 .vscode/*
 !.vscode/extensions.json

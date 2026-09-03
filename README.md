@@ -43,9 +43,17 @@ npm run lint     # oxlint
 
 以 iPhone 15 Pro Max（430×932）為主要基準，並於 iPhone 15 Pro、14 與 SE 尺寸驗證：無水平捲軸、無內容進入 Dynamic Island、Tab bar 不被 Home Indicator 遮擋。
 
-## 目前狀態
+## 後端
 
-資料儲存於瀏覽器 localStorage，並以匿名 user id 分隔。
+Supabase（PostgreSQL + Row Level Security）。使用者透過匿名登入取得真正的 `auth.uid()`，不需註冊；每張表的 RLS policy 都比對 `auth.uid() = user_id`，隔離由資料庫強制，不是前端自律。Schema 見 `supabase/schema.sql`。
 
-> ⚠️ 這是**前端層的分隔，不是安全隔離** —— 同一台裝置上開啟開發者工具即可看到全部資料。
-> 後端（Supabase + Row Level Security）尚未接上；Email 提醒與每月報告目前僅有設定介面，實際寄送需要後端服務。
+## Email 提醒
+
+`supabase/functions/` 下兩個 Edge Function：
+
+| Function | 觸發時機 | 內容 |
+| --- | --- | --- |
+| `send-reminders` | 每天 12:00、19:00（台北時間） | 當天還沒記帳的使用者才會收到 |
+| `send-monthly-report` | 每月 1 號 09:00（台北時間） | 上個月的消費總覽 + 分類明細 |
+
+寄信服務使用 [Resend](https://resend.com)。排程由 `pg_cron` + `pg_net` 觸發（見 `supabase/cron.sql`），service role key 存放於 Supabase Vault，不出現在任何原始碼或版控紀錄中。部署與排程設定步驟見該檔案開頭的註解。

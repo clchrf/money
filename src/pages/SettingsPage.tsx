@@ -113,7 +113,7 @@ export function SettingsPage() {
           />
         </ListGroup>
         <ListCaption>
-          今天已記帳就不會重複提醒。設定會保留在這台裝置上；實際寄送 Email 需要連接後端寄信服務後才會啟用。
+          今天已記帳就不會重複提醒，一天最多兩次。提醒於每天 12:00 與 19:00（台北時間）寄送，每月 1 號寄送上個月的消費報告。
         </ListCaption>
 
         <SectionHeader>資料</SectionHeader>
