@@ -9,7 +9,9 @@
 // New function (name it "send-monthly-report"), or `supabase functions
 // deploy send-monthly-report`.
 //
-// Needs the same secrets as send-reminders: RESEND_API_KEY, EMAIL_FROM.
+// Needs the same secrets as send-reminders: RESEND_API_KEY, EMAIL_FROM,
+// and CRON_SECRET (a random string only pg_cron and this function know —
+// see send-reminders/index.ts for why it's not just the service role key).
 // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are injected automatically.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -103,12 +105,13 @@ function reportEmailHtml(
 }
 
 Deno.serve(async (req) => {
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const cronSecret = Deno.env.get('CRON_SECRET')
   const authHeader = req.headers.get('Authorization')
-  if (authHeader !== `Bearer ${serviceKey}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
   }
 
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const supabase = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey)
   const { startUtc, endUtc, label } = previousTaipeiMonthRangeUtc(new Date())
 
