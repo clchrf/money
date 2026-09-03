@@ -5,10 +5,26 @@ export function SectionHeader({ children }: { children: ReactNode }) {
   return <div className="px-5 pb-2 pt-6 text-footnote text-secondary">{children}</div>
 }
 
-/** iOS-style grouped container. Rows inside get their own hairlines. */
-export function ListGroup({ children, className = '' }: { children: ReactNode; className?: string }) {
+/**
+ * iOS-style grouped container. Rows inside get their own hairlines.
+ *
+ * `inset` (default) adds the standard 16px side margin, for a group sitting
+ * directly in a page's own edge-to-edge flow. Pass `inset={false}` when the
+ * group is already inside a padded container (a form, a sheet) — an
+ * explicit prop rather than a className override that has to out-fight the
+ * base mx-4, which utility classes can't reliably do by string concatenation.
+ */
+export function ListGroup({
+  children,
+  inset = true,
+  className = '',
+}: {
+  children: ReactNode
+  inset?: boolean
+  className?: string
+}) {
   return (
-    <div className={`mx-4 overflow-hidden rounded-md bg-surface ${className}`}>
+    <div className={`${inset ? 'mx-4' : ''} overflow-hidden rounded-md bg-surface ${className}`}>
       <div className="divide-y divide-divider">{children}</div>
     </div>
   )

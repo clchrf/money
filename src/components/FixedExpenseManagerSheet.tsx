@@ -16,6 +16,7 @@ import { Switch } from '../ui/Switch'
 import { useStore } from '../lib/useStore'
 import { CategoryBottomSheet } from './CategoryBottomSheet'
 import { CategoryPillButton } from './CategoryPillButton'
+import { DateSheet, toDateKey } from './DateSheet'
 
 const FREQUENCIES: { value: FixedFrequency; label: string }[] = [
   { value: 'monthly', label: '每月' },
@@ -24,6 +25,11 @@ const FREQUENCIES: { value: FixedFrequency; label: string }[] = [
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
+}
+
+/** yyyy-mm-dd -> 2026/09/03, the one fixed format for this field. */
+function formatYmd(key: string): string {
+  return key.replaceAll('-', '/')
 }
 
 function FixedExpenseFormSheet({
@@ -45,6 +51,7 @@ function FixedExpenseFormSheet({
   const [autoRecord, setAutoRecord] = useState(initial?.auto_record ?? false)
   const [reminderEnabled, setReminderEnabled] = useState(initial?.reminder_enabled ?? true)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [dateOpen, setDateOpen] = useState(false)
 
   const numericAmount = Number(amount)
   const canSave = name.trim().length > 0 && numericAmount > 0 && category !== '' && nextDate !== ''
@@ -104,21 +111,46 @@ function FixedExpenseFormSheet({
         </div>
 
         <FieldLabel>下次日期</FieldLabel>
-        <TextField value={nextDate} onChange={setNextDate} type="date" ariaLabel="下次日期" className="mb-5" />
+        <div className="mb-5">
+          {/* A native <input type="date"> here previously — its rendered
+              width/height and date format both vary by browser/OS (WebKit's
+              own segmented control most of all), which is exactly what was
+              breaking the row's layout on selection. Same ListRow the
+              auto-record/reminder rows below use: fixed min-h-12 regardless
+              of whether a date is chosen, and the YYYY/MM/DD format is ours
+              to control instead of the platform's locale formatting. */}
+          <ListGroup inset={false}>
+            <ListRow
+              label="下次日期"
+              value={nextDate ? formatYmd(nextDate) : '選擇日期'}
+              accessory="chevron"
+              onClick={() => setDateOpen(true)}
+            />
+          </ListGroup>
+        </div>
 
         <FieldLabel>備註（選填）</FieldLabel>
         <TextField value={note} onChange={setNote} ariaLabel="備註" className="mb-6" />
 
-        <ListGroup className="mx-0">
+        {/* Fixed height on both rows (rather than the shared min-h-12 default) —
+            mixed CJK/Latin text (the "Email" in the reminder row's detail
+            line) renders with slightly different font metrics than pure
+            CJK, which left the two rows 1px apart under content-driven
+            height. A shared explicit height makes them identical regardless
+            of what the detail text says, without changing ListRow's default
+            for the rows elsewhere that don't set this. */}
+        <ListGroup inset={false}>
           <ListRow
             label="自動記帳"
             detail="到期自動加入紀錄，而不只是提醒"
             trailing={<Switch checked={autoRecord} onChange={setAutoRecord} label="自動記帳" />}
+            className="h-[68px]"
           />
           <ListRow
             label="到期提醒"
             detail="需在設定中連接 Email 才會實際寄送"
             trailing={<Switch checked={reminderEnabled} onChange={setReminderEnabled} label="到期提醒" />}
+            className="h-[68px]"
           />
         </ListGroup>
       </div>
@@ -131,6 +163,17 @@ function FixedExpenseFormSheet({
             setPickerOpen(false)
           }}
           onDismiss={() => setPickerOpen(false)}
+        />
+      )}
+
+      {dateOpen && (
+        <DateSheet
+          value={nextDate || toDateKey(new Date())}
+          onSelect={(key) => {
+            setNextDate(key)
+            setDateOpen(false)
+          }}
+          onDismiss={() => setDateOpen(false)}
         />
       )}
     </ModalScreen>
