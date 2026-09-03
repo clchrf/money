@@ -4,9 +4,11 @@ import type { Transaction } from '../lib/types'
 import { useAmountInput } from '../lib/useAmountInput'
 import { TextButton } from '../ui/Button'
 import { TextField } from '../ui/Field'
+import { Icon } from '../ui/Icon'
 import { ModalScreen } from '../ui/Sheet'
 import { CategoryBottomSheet } from './CategoryBottomSheet'
 import { CategoryPillButton } from './CategoryPillButton'
+import { DateSheet, dateKeyToISO, formatDateLabel, toDateKey } from './DateSheet'
 import { NumberPad } from './NumberPad'
 
 function formatAmount(raw: string): string {
@@ -22,25 +24,28 @@ export function EditTransactionModal({
 }: {
   transaction: Transaction
   onCancel: () => void
-  onSave: (patch: { amount: number; category: string; note: string }) => void
+  onSave: (patch: { amount: number; category: string; note: string; created_at: string }) => void
 }) {
   const { value, handleKey, numeric } = useAmountInput(String(transaction.amount))
   const [category, setCategory] = useState<string>(transaction.category)
   const [note, setNote] = useState(transaction.note)
+  const [date, setDate] = useState<string>(() => toDateKey(new Date(transaction.created_at)))
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [dateOpen, setDateOpen] = useState(false)
 
   const canSave = numeric > 0
+
+  const save = () => {
+    if (!canSave) return
+    onSave({ amount: numeric, category, note, created_at: dateKeyToISO(date) })
+  }
 
   return (
     <ModalScreen
       title="編輯紀錄"
       left={<TextButton onClick={onCancel}>取消</TextButton>}
       right={
-        <TextButton
-          emphasis="strong"
-          disabled={!canSave}
-          onClick={() => canSave && onSave({ amount: numeric, category, note })}
-        >
+        <TextButton emphasis="strong" disabled={!canSave} onClick={save}>
           儲存
         </TextButton>
       }
@@ -50,7 +55,25 @@ export function EditTransactionModal({
           <span>$</span>
           <span>{formatAmount(value)}</span>
         </div>
-        <CategoryPillButton category={getCategory(category)} onClick={() => setPickerOpen(true)} />
+
+        {/* Same pill family as the record screen's date button and the
+            category pill — reused as-is, not a new date-field pattern. */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => setDateOpen(true)}
+            aria-label={`日期：${formatDateLabel(date)}，點擊變更`}
+            className="group flex h-11 items-center"
+          >
+            <span className="flex h-9 items-center gap-2 rounded-full bg-fill pl-3 pr-2.5 text-callout font-medium text-primary transition-colors duration-100 group-active:bg-fill-strong">
+              <Icon name="calendar" size="sm" className="text-secondary" />
+              {formatDateLabel(date)}
+              <Icon name="chevronDown" size="sm" className="text-tertiary" />
+            </span>
+          </button>
+          <CategoryPillButton category={getCategory(category)} onClick={() => setPickerOpen(true)} />
+        </div>
+
         <div className="w-full max-w-[260px]">
           <TextField value={note} onChange={setNote} placeholder="備註（選填）" align="center" />
         </div>
@@ -68,6 +91,17 @@ export function EditTransactionModal({
             setPickerOpen(false)
           }}
           onDismiss={() => setPickerOpen(false)}
+        />
+      )}
+
+      {dateOpen && (
+        <DateSheet
+          value={date}
+          onSelect={(key) => {
+            setDate(key)
+            setDateOpen(false)
+          }}
+          onDismiss={() => setDateOpen(false)}
         />
       )}
     </ModalScreen>

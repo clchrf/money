@@ -22,7 +22,7 @@ export const addTransaction = (input: {
 
 export const updateTransaction = (
   id: string,
-  patch: Partial<Pick<Transaction, 'amount' | 'category' | 'note'>>,
+  patch: Partial<Pick<Transaction, 'amount' | 'category' | 'note' | 'created_at'>>,
 ) => dbUpdateTransaction(id, patch)
 
 export const deleteTransaction = (id: string) => dbDeleteTransaction(id)

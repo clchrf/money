@@ -191,12 +191,19 @@ export async function dbAddTransaction(input: {
 
 export async function dbUpdateTransaction(
   id: string,
-  patch: { amount?: number; category?: string; note?: string },
+  patch: { amount?: number; category?: string; note?: string; created_at?: string },
 ) {
   const row: Row = {}
   if (patch.amount !== undefined) row.amount = patch.amount
   if (patch.category !== undefined) row.category_id = patch.category || null
   if (patch.note !== undefined) row.note = patch.note
+  // created_at doubles as "the date this expense happened" (RecordPage's own
+  // date picker already writes it on create) — there is no separate
+  // transaction-date column, so editing the date updates this field.
+  // updated_at is untouched here; the DB trigger sets it to now() on any
+  // UPDATE regardless, so "row last modified" and "expense happened on"
+  // stay independently correct.
+  if (patch.created_at !== undefined) row.created_at = patch.created_at
   const { error } = await db().from('transactions').update(row).eq('id', id)
   if (error) throw error
   await refresh('transactions')
