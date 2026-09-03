@@ -12,7 +12,7 @@ import { runAutoRecord } from './lib/fixedExpenses'
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-dvh items-center justify-center bg-bg px-10 text-center">
+    <div className="flex h-app items-center justify-center bg-bg px-10 text-center">
       <div className="max-w-xs text-callout leading-relaxed text-secondary">{children}</div>
     </div>
   )
@@ -47,7 +47,7 @@ function App() {
     // its position regardless of notch height or device height.
     return (
       <ThemeProvider>
-        <div className="flex h-dvh items-center justify-center bg-bg">
+        <div className="flex h-app items-center justify-center bg-bg">
           <span className="text-headline font-bold text-primary">$</span>
         </div>
       </ThemeProvider>
@@ -70,7 +70,7 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="mx-auto flex h-dvh max-w-md flex-col bg-bg sm:border-x sm:border-divider">
+      <div className="mx-auto flex h-app max-w-md flex-col bg-bg sm:border-x sm:border-divider">
         <div className="min-h-0 flex-1">
           {tab === 'record' && <RecordPage />}
           {tab === 'history' && <HistoryPage />}

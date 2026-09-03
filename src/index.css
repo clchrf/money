@@ -145,12 +145,29 @@
  * and reading as "the whole app is shifted up." Sizing the whole chain with
  * the same dynamic unit removes the mismatch at the source, with no
  * hardcoded offsets.
+ *
+ * The third line is a corrective layer for a separate, iOS-PWA-only bug:
+ * WebKit standalone PWAs can compute 100dvh too small on the very first
+ * layout pass, self-correcting only later (the page visibly jumps down
+ * once it does). --app-vh is set from the real window.innerHeight by an
+ * inline script in index.html and is correct from frame one; everywhere
+ * else (Chrome, Safari-in-tab) dvh was already right, so this resolves to
+ * the identical value and changes nothing.
  */
 html,
 body,
 #root {
   height: 100vh;
   height: 100dvh;
+  height: calc(var(--app-vh, 1vh) * 100);
+}
+
+/* Same correction for the app-shell divs in App.tsx, which each set their
+   own 100dvh independently of the ancestor chain above — see index.html. */
+.h-app {
+  height: 100vh;
+  height: 100dvh;
+  height: calc(var(--app-vh, 1vh) * 100);
 }
 
 body {

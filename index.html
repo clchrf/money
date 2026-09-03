@@ -15,6 +15,30 @@
     <link rel="icon" type="image/png" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>極簡記帳</title>
+    <script>
+      // iOS standalone PWAs have a documented WebKit bug where 100dvh is
+      // computed too small on the very first layout pass after launch, then
+      // silently corrects itself later (visible as the whole page jumping
+      // down once it does). Chrome and Safari-in-tab don't have this bug —
+      // dvh is correct there from the first frame. Rather than branch on
+      // platform, this sets a --app-vh custom property from the real,
+      // always-correct window.innerHeight; src/index.css layers it on top of
+      // the native dvh value, so on platforms where dvh was already right
+      // this computes to the exact same number (no visual change there) and
+      // on iOS PWA it supplies the correct height from frame one instead of
+      // waiting for WebKit's self-correction.
+      (function () {
+        function setAppHeight() {
+          document.documentElement.style.setProperty('--app-vh', window.innerHeight * 0.01 + 'px')
+        }
+        setAppHeight()
+        window.addEventListener('resize', setAppHeight)
+        window.addEventListener('orientationchange', setAppHeight)
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', setAppHeight)
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
